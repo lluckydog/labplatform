@@ -21,7 +21,7 @@ type Lab struct {
 	ClassID   string `json:"classID"`
 	Name      string `json:"name"`
 	Content   string `json:"content"`
-	Image     string `json:"image"`
+	Config    string `json:"config"`
 	StartTime string `json:"startTime"`
 	EndTime   string `json:"endTime"`
 	Owner     string `json:"owner"`
@@ -37,7 +37,7 @@ type PaginatedQueryResult struct {
 }
 
 // CreateAsset initializes a new asset in the ledger
-func (t *LabContract) CreateLab(ctx contractapi.TransactionContextInterface, labID, classID, name, content, image, startTime, endTime, owner string) error {
+func (t *LabContract) CreateLab(ctx contractapi.TransactionContextInterface, labID, classID, name, content, config, startTime, endTime, owner string) error {
 	exists, err := t.LabExists(ctx, labID)
 	if err != nil {
 		return fmt.Errorf("failed to get lab: %v", err)
@@ -52,7 +52,7 @@ func (t *LabContract) CreateLab(ctx contractapi.TransactionContextInterface, lab
 		ClassID:   classID,
 		Name:      name,
 		Content:   content,
-		Image:     image,
+		Config:    config,
 		StartTime: startTime,
 		EndTime:   endTime,
 		Owner:     owner,
@@ -172,7 +172,7 @@ func (t *LabContract) UpdateLabContent(ctx contractapi.TransactionContextInterfa
 	return ctx.GetStub().PutState(labID, labBytes)
 }
 
-func (t *LabContract) UpdateLabImage(ctx contractapi.TransactionContextInterface, labID, newImage, clientID string) error {
+func (t *LabContract) UpdateLabConfig(ctx contractapi.TransactionContextInterface, labID, newConfig, clientID string) error {
 	lab, err := t.ReadLab(ctx, labID)
 	if err != nil {
 		return err
@@ -182,7 +182,7 @@ func (t *LabContract) UpdateLabImage(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("submitting client not authorized to update lab, does not own lab")
 	}
 
-	lab.Image = newImage
+	lab.Config = newConfig
 	labBytes, err := json.Marshal(lab)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (t *LabContract) UpdateLabEndtime(ctx contractapi.TransactionContextInterfa
 	return ctx.GetStub().PutState(labID, labBytes)
 }
 
-func (t *LabContract) UpdateLab(ctx contractapi.TransactionContextInterface, labID, newImage, newName, newContent, newStartTime, newEndTime, clientID string) error {
+func (t *LabContract) UpdateLab(ctx contractapi.TransactionContextInterface, labID, newConfig, newName, newContent, newStartTime, newEndTime, clientID string) error {
 	lab, err := t.ReadLab(ctx, labID)
 	if err != nil {
 		return err
@@ -221,7 +221,7 @@ func (t *LabContract) UpdateLab(ctx contractapi.TransactionContextInterface, lab
 		return fmt.Errorf("submitting client not authorized to update lab, does not own lab")
 	}
 
-	lab.Image = newImage
+	lab.Config = newConfig
 	lab.Name = newName
 	lab.Content = newContent
 	lab.StartTime = newStartTime
@@ -367,13 +367,13 @@ func (t *LabContract) LabExists(ctx contractapi.TransactionContextInterface, lab
 // InitLedger creates the initial set of assets in the ledger.
 func (t *LabContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	labs := []Lab{
-		{DocType: "lab", ID: "lab1", ClassID: "class1", Name: "class1", Content: "test", Image: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
-		{DocType: "lab", ID: "lab2", ClassID: "class1", Name: "class1", Content: "test", Image: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
-		{DocType: "lab", ID: "lab3", ClassID: "class1", Name: "class1", Content: "test", Image: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
+		{DocType: "lab", ID: "lab1", ClassID: "class1", Name: "class1", Content: "test", Config: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
+		{DocType: "lab", ID: "lab2", ClassID: "class1", Name: "class1", Content: "test", Config: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
+		{DocType: "lab", ID: "lab3", ClassID: "class1", Name: "class1", Content: "test", Config: "1", StartTime: "2022", EndTime: "2022", Owner: "Tom"},
 	}
 
 	for _, lab := range labs {
-		err := t.CreateLab(ctx, lab.ID, lab.ClassID, lab.Name, lab.Content, lab.Image, lab.StartTime, lab.EndTime, lab.Owner)
+		err := t.CreateLab(ctx, lab.ID, lab.ClassID, lab.Name, lab.Content, lab.Config, lab.StartTime, lab.EndTime, lab.Owner)
 		if err != nil {
 			return err
 		}
