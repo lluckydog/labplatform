@@ -16,12 +16,13 @@ type InstanceContract struct {
 
 // Asset describes basic details of what makes up a simple asset
 type Instance struct {
-	DocType string `json:"docType"` //docType is used to distinguish the various types of objects in state database
-	ID      string `json:"ID"`
-	ClassID string `json:"classID"`
-	LabID   string `json:"labID"`
-	Config  string `json:"config"`
-	Owner   string `json:"owner"`
+	DocType  string `json:"docType"` //docType is used to distinguish the various types of objects in state database
+	ID       string `json:"ID"`
+	ClassID  string `json:"classID"`
+	LabID    string `json:"labID"`
+	Config   string `json:"config"`
+	Owner    string `json:"owner"`
+	UsedTime uint64 `json:"usedtime"`
 }
 
 const index1 = "labID~name"
@@ -40,12 +41,13 @@ func (t *InstanceContract) CreateInstance(ctx contractapi.TransactionContextInte
 	}
 
 	instance := &Instance{
-		DocType: "instance",
-		ID:      instanceID,
-		ClassID: classID,
-		LabID:   labID,
-		Config:  config,
-		Owner:   owner,
+		DocType:  "instance",
+		ID:       instanceID,
+		ClassID:  classID,
+		LabID:    labID,
+		Config:   config,
+		Owner:    owner,
+		UsedTime: 0,
 	}
 	instanceBytes, err := json.Marshal(instance)
 	if err != nil {
@@ -138,7 +140,7 @@ func (t *InstanceContract) DeleteInstance(ctx contractapi.TransactionContextInte
 
 	err = ctx.GetStub().DelState(instanceID)
 	if err != nil {
-		return fmt.Errorf("failed to delete asset %s: %v", instance, err)
+		return fmt.Errorf("failed to delete asset %s: %v", instanceID, err)
 	}
 
 	instanceNameIndexKey1, err := ctx.GetStub().CreateCompositeKey(index1, []string{instance.LabID, instance.ID})
@@ -170,6 +172,25 @@ func (t *InstanceContract) DeleteInstance(ctx contractapi.TransactionContextInte
 
 	// Delete index entry
 	return ctx.GetStub().DelState(instanceNameIndexKey3)
+}
+
+func (t *InstanceContract) UpdateInstanceUsedTime(ctx contractapi.TransactionContextInterface, instanceID, clientID string, newUsedTime uint64) error {
+	instance, err := t.ReadInstance(ctx, instanceID)
+	if err != nil {
+		return err
+	}
+
+	if clientID != instance.Owner {
+		return fmt.Errorf("submitting client not authorized to update lab, does not own lab")
+	}
+
+	instance.UsedTime = newUsedTime
+	instanceBytes, err := json.Marshal(instance)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(instanceID, instanceBytes)
 }
 
 func (t *InstanceContract) GetInstanceByRange(ctx contractapi.TransactionContextInterface, startKey, endKey string) ([]*Instance, error) {
@@ -228,9 +249,9 @@ func constructQueryResponseFromIterator(resultsIterator shim.StateQueryIteratorI
 // InitLedger creates the initial set of assets in the ledger.
 func (t *InstanceContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	instances := []Instance{
-		{ID: "instance1", ClassID: "class1", LabID: "lab1", Config: "test", Owner: "Tom"},
-		{ID: "instance2", ClassID: "class1", LabID: "lab1", Config: "test", Owner: "Tom"},
-		{ID: "instance3", ClassID: "class1", LabID: "lab2", Config: "test", Owner: "Sam"},
+		{ID: "instance1", ClassID: "class1", LabID: "lab1", Config: "test", Owner: "Tom", UsedTime: 0},
+		{ID: "instance2", ClassID: "class1", LabID: "lab1", Config: "test", Owner: "Tom", UsedTime: 11},
+		{ID: "instance3", ClassID: "class1", LabID: "lab2", Config: "test", Owner: "Sam", UsedTime: 10},
 	}
 
 	for _, instance := range instances {
